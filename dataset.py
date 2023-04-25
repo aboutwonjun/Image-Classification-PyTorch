@@ -1,46 +1,37 @@
 import torch
-import torchvision
-from augmentations import augmentation, ContrastiveAugmentation
+from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
 
 class initialize_dataset:
-    def __init__(self, image_resolution=224, batch_size=128, MNIST=True):
+    def __init__(self, image_resolution=224, batch_size=128, root_dir="./dataset/dcgan"):
         self.image_resolution= image_resolution
         self.batch_size=batch_size
-        self.MNIST = MNIST
+        self.root_dir = root_dir
 
     def load_dataset(self, transform=False):
-        path = "/home/mayur/Desktop/Pytorch/data"
-        #path = './data'
         if transform:
-            transform = augmentation(image_resolution=self.image_resolution)
-        elif self.MNIST:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((self.image_resolution, self.image_resolution)),
-                                            transforms.Normalize((0.1307,), (0.3081,))])
+            transform = transforms.Compose([
+                transforms.Resize((self.image_resolution, self.image_resolution)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
         else:
-            transform = transforms.Compose([transforms.ToTensor(), transforms.Resize((self.image_resolution, self.image_resolution)),
-                        transforms.RandomHorizontalFlip(), transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
+            transform = transforms.Compose([
+                transforms.Resize((self.image_resolution, self.image_resolution)),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])])
 
-        if self.MNIST:
-            train_dataset = torchvision.datasets.MNIST(root=path, train=True,
-                                                        transform = transform,
-                                                        download=True)
-            test_dataset = torchvision.datasets.MNIST(root=path, train=False,
-                                                    transform = transform,
-                                                    download=True)
-        else:
-            train_dataset = torchvision.datasets.CIFAR10(root=path, train=True,
-                                                        transform = transform,
-                                                        download=True)
-            test_dataset = torchvision.datasets.CIFAR10(root=path, train=False,
-                                                    transform = transform,
-                                                    download=True)
+        train_path = self.root_dir + "/train"
+        test_path = self.root_dir + "/test"
 
-        train_dataloader = torch.utils.data.DataLoader(dataset = train_dataset,
-                                                        batch_size=self.batch_size,
-                                                        shuffle=True)
-        test_dataloader = torch.utils.data.DataLoader(dataset = test_dataset,
-                                                        batch_size=self.batch_size,
-                                                        shuffle=True)
+        train_dataset = ImageFolder(root=train_path, transform=transform)
+        test_dataset = ImageFolder(root=test_path, transform=transform)
+
+        train_dataloader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                       batch_size=self.batch_size,
+                                                       shuffle=True)
+        test_dataloader = torch.utils.data.DataLoader(dataset=test_dataset,
+                                                      batch_size=self.batch_size,
+                                                      shuffle=True)
 
         return train_dataloader, test_dataloader
