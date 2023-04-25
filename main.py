@@ -1,8 +1,7 @@
 import argparse
-
 import torch
 import yaml
-from torchstat import stat
+import os 
 
 from convNet import CNN
 from AlexNet import AlexNet
@@ -37,10 +36,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 """ Initialize model based on command line argument """
 model_parser = argparse.ArgumentParser(description='Image Classification Using PyTorch', usage='[option] model_name')
 model_parser.add_argument('--model', type=str, required=True)
-model_parser.add_argument('--model_save', type=bool, required=False)
-model_parser.add_argument('--checkpoint', type=bool, required=False)
-model_parser.add_argument('--sam', type=bool, required=False)
+model_parser.add_argument('--model_save', dest='model_save', action='store_true')
+model_parser.add_argument('--no_model_save', dest='model_save', action='store_false')
+model_parser.set_defaults(model_save=False)
+model_parser.add_argument('--checkpoint', dest='checkpoint', action='store_true')
+model_parser.add_argument('--no_checkpoint', dest='checkpoint', action='store_false')
+model_parser.set_defaults(checkpoint=False)
+model_parser.add_argument('--sam', dest='sam', action='store_true')
+model_parser.add_argument('--no_sam', dest='sam', action='store_false')
+model_parser.add_argument('--dataset_path', type=str, required=True, help='Path to the dataset folder')
+model_parser.set_defaults(sam=False)
 args = model_parser.parse_args()
+
 
 """Loading Config File"""
 try:
@@ -50,13 +57,16 @@ except FileNotFoundError:
     print("Config file missing")
 
 """Dataset Initialization"""
-data_initialization = initialize_dataset(image_resolution=config['parameters']['image_resolution'], batch_size=config['parameters']['batch_size'], 
-                      MNIST=config['parameters']['MNIST'])
-train_dataloader, test_dataloader = data_initialization.load_dataset(transform=True)
+base_dir = os.path.abspath(args.dataset_path)
+train_dataloader, test_dataloader = initialize_dataset(
+    image_resolution=config['parameters']['image_resolution'], 
+    batch_size=config['parameters']['batch_size'],
+    root_dir=base_dir
+).load_dataset(transform=True)
 
 input_channel = next(iter(train_dataloader))[0].shape[1]
-#n_classes = len(torch.unique(next(iter(train_dataloader))[1]))
 n_classes = config['parameters']['n_classes']
+
 
 """Model Initialization"""
 
